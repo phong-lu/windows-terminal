@@ -12,6 +12,8 @@ namespace winrt::TerminalApp::implementation
     struct TabRowControl : TabRowControlT<TabRowControl>
     {
         TabRowControl();
+        void SetVertical(bool vertical);
+        void UpdateTabCorners(const Microsoft::UI::Xaml::Controls::TabViewItem& item);
 
         void OnNewTabButtonClick(const Windows::Foundation::IInspectable& sender, const Microsoft::UI::Xaml::Controls::SplitButtonClickEventArgs& args);
         void OnNewTabButtonDrop(const winrt::Windows::Foundation::IInspectable& sender, const winrt::Windows::UI::Xaml::DragEventArgs& e);
@@ -21,6 +23,17 @@ namespace winrt::TerminalApp::implementation
         WINRT_OBSERVABLE_PROPERTY(bool, ShowElevationShield, PropertyChanged.raise, false);
         WINRT_OBSERVABLE_PROPERTY(bool, ShowWorkspacesButton, PropertyChanged.raise, true);
         WINRT_OBSERVABLE_PROPERTY(winrt::hstring, WorkspaceName, PropertyChanged.raise, L"");
+
+    private:
+        winrt::Windows::UI::Xaml::Controls::ControlTemplate _horizontalTemplate{ nullptr };
+        bool _vertical{ false };
+        struct TabCornerOverride
+        {
+            winrt::weak_ref<Windows::UI::Xaml::Controls::Grid> container;
+            Windows::UI::Xaml::Data::Binding binding{ nullptr };
+            Windows::UI::Xaml::CornerRadius radius;
+        };
+        std::vector<TabCornerOverride> _cornerOverrides;
     };
 }
 

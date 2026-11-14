@@ -363,37 +363,8 @@ namespace winrt::TerminalApp::implementation
             }
         });
 
-        if (_currentWindowSettings().ShowTabsInTitlebar())
-        {
-            // Remove the TabView from the page. We'll hang on to it, we need to
-            // put it in the titlebar.
-            uint32_t index = 0;
-            if (this->Root().Children().IndexOf(_tabRow, index))
-            {
-                this->Root().Children().RemoveAt(index);
-            }
-
-            // Inform the host that our titlebar content has changed.
-            SetTitleBarContent.raise(*this, _tabRow);
-
-            // GH#13143 Manually set the tab row's background to transparent here.
-            //
-            // We're doing it this way because ThemeResources are tricky. We
-            // default in XAML to using the appropriate ThemeResource background
-            // color for our TabRow. When tabs in the titlebar are _disabled_,
-            // this will ensure that the tab row has the correct theme-dependent
-            // value. When tabs in the titlebar are _enabled_ (the default),
-            // we'll switch the BG to Transparent, to let the Titlebar Control's
-            // background be used as the BG for the tab row.
-            //
-            // We can't do it the other way around (default to Transparent, only
-            // switch to a color when disabling tabs in the titlebar), because
-            // looking up the correct ThemeResource from and App dictionary is a
-            // capital-H Hard problem.
-            const auto transparent = Media::SolidColorBrush();
-            transparent.Color(Windows::UI::Colors::Transparent());
-            _tabRow.Background(transparent);
-        }
+        _tabsInTitlebar = _currentWindowSettings().ShowTabsInTitlebar();
+        _UpdateTabLocation();
         _updateThemeColors();
 
         // Initialize the state of the CloseButtonOverlayMode property of
@@ -4184,6 +4155,8 @@ namespace winrt::TerminalApp::implementation
             }
         }
 
+        _UpdateTabLocation();
+
         // repopulate the new tab button's flyout with entries for each
         // profile, which might have changed
         _UpdateTabWidthMode();
@@ -4393,12 +4366,19 @@ namespace winrt::TerminalApp::implementation
 
     void TerminalPage::SetFocusMode(const bool inFocusMode)
     {
+        // Entering or leaving quake mode can change the tab location even
+        // when the page was already in focus mode.
+        _UpdateTabLocation();
         const auto newInFocusMode = inFocusMode;
         if (newInFocusMode != FocusMode())
         {
             _isInFocusMode = newInFocusMode;
             _UpdateTabView();
             FocusModeChanged.raise(*this, nullptr);
+        }
+        else
+        {
+            _UpdateTabView();
         }
     }
 
@@ -5215,7 +5195,7 @@ namespace winrt::TerminalApp::implementation
             TitlebarBrush(backgroundSolidBrush);
         }
 
-        if (!_currentWindowSettings().ShowTabsInTitlebar())
+        if (!_tabsInTitlebar || _tabLocation != TabLocation::Top)
         {
             _tabRow.Background(TitlebarBrush());
         }
@@ -6110,10 +6090,11 @@ namespace winrt::TerminalApp::implementation
         {
             if (const auto& item{ _tabView.ContainerFromIndex(i).try_as<winrt::MUX::Controls::TabViewItem>() })
             {
-                const auto posX{ e.GetPosition(item).X }; // The point of the drop, relative to the tab
-                const auto itemWidth{ item.ActualWidth() }; // The right of the tab
-                // If the drag point is on the left half of the tab, then insert here.
-                if (posX < itemWidth / 2)
+                const auto vertical = _tabLocation != TabLocation::Top;
+                const auto position = e.GetPosition(item);
+                const auto offset = vertical ? position.Y : position.X;
+                const auto extent = vertical ? item.ActualHeight() : item.ActualWidth();
+                if (offset < extent / 2)
                 {
                     index = i;
                     break;

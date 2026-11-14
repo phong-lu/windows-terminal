@@ -1,0 +1,73 @@
+name: Build release packages
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-packages-${{ github.event.release.id }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Package ${{ matrix.platform }}
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 180
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [x64, arm64]
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name }}
+      BUILD_PLATFORM: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.ref }}
+          persist-credentials: false
+          submodules: recursive
+
+      - name: Set package version from release tag
+        run: |
+          # Accept v1.2.3, 1.2.3.4, and prerelease suffixes such as v1.2.3-beta.1.
+          if ($env:RELEASE_TAG -notmatch '^v?(\d+\.\d+\.\d+(?:\.\d+)?)(?:[-+].*)?$') {
+            throw 'Release tags must contain a numeric version, for example v1.2.3.'
+          }
+          $parts = @($Matches[1].Split('.') | ForEach-Object { [int]$_ })
+          if ($parts.Count -eq 3) { $parts += 0 }
+          if (($parts | Where-Object { $_ -gt 65535 }).Count) {
+            throw 'MSIX version components must be no greater than 65535.'
+          }
+          $version = $parts -join '.'
+          $manifestPath = 'src/cascadia/CascadiaPackage/Package.appxmanifest'
+          $manifest = [xml](Get-Content -Raw $manifestPath)
+          $manifest.Package.Identity.Version = $version
+          $manifest.Save((Join-Path $PWD $manifestPath))
+          "PACKAGE_VERSION=$version" >> $env:GITHUB_ENV
+
+      - name: Build release installer and portable ZIP
+        run: |
+          ./build/scripts/Build-TerminalInstaller.ps1 `
+            -Architecture $env:BUILD_PLATFORM `
+            -OutputDirectory "$PWD/release-assets"
+
+      - name: Upload assets to the published release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          $assets = @(Get-ChildItem release-assets -File | Where-Object {
+            $_.Name -like '*-portable.zip' -or $_.Name -like '*-setup.exe'
+          } | ForEach-Object { $_.FullName })
+          if ($assets.Count -ne 2) { throw "Expected one installer and one portable ZIP, found $($assets.Count)." }
+          gh release upload $env:RELEASE_TAG @assets --clobber
+          if ($LASTEXITCODE) { throw 'Uploading release assets failed.' }

@@ -20,6 +20,7 @@
     "showTabsInTitlebar": true,
     "showTerminalTitleInTitlebar": true,
     "tabWidthMode": "equal",
+    "tabLocation": "top",
     "tabSwitcherMode": "inOrder",
     "showAdminShield": true,
 
@@ -47,6 +48,14 @@
             "name": "Command Prompt",
             "commandline": "%SystemRoot%\\System32\\cmd.exe",
             "icon": "ms-appx:///ProfileIcons/{0caa0dad-35be-5f56-a8ff-afceeeaa6101}.png",
+            "startingDirectory": "%USERPROFILE%"
+        },
+        {
+            "guid": "{2b37ca27-1e99-5f07-89a5-8f74f5f57a78}",
+            "name": "Git Bash",
+            "commandline": "\"%ProgramFiles%\\Git\\bin\\bash.exe\" --login -i",
+            "icon": "ms-appx:///ProfileIcons/git-bash.ico",
+            "font": { "face": "MesloLGS NF" },
             "startingDirectory": "%USERPROFILE%"
         }
     ],

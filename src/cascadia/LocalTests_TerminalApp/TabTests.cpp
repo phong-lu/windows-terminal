@@ -70,11 +70,13 @@ namespace TerminalAppLocalTests
         TEST_METHOD(TryCreateXamlObjects);
 
         TEST_METHOD(TryInitializePage);
+        TEST_METHOD(TabLocationLayouts);
 
         TEST_METHOD(CreateSimpleTerminalXamlType);
         TEST_METHOD(CreateTerminalMuxXamlType);
 
         TEST_METHOD(CreateTerminalPage);
+        TEST_METHOD(FocusModeCanBeToggledInQuakeWindow);
 
         TEST_METHOD(TryDuplicateBadTab);
         TEST_METHOD(TryDuplicateBadPane);
@@ -199,6 +201,52 @@ namespace TerminalAppLocalTests
         VERIFY_SUCCEEDED(result);
     }
 
+    void TabTests::FocusModeCanBeToggledInQuakeWindow()
+    {
+        VERIFY_SUCCEEDED(RunOnUIThread([]() {
+            CascadiaSettings settings{ LR"({"alwaysShowTabs":true,"showTabsInTitlebar":false})", {} };
+            const auto manager = winrt::make_self<winrt::TerminalApp::implementation::ContentManager>();
+            for (const auto name : { L"", L"standalone", L"_quake" })
+            {
+                const auto quake = std::wstring_view{ name } == L"_quake";
+                for (const auto location : { TabLocation::Top, TabLocation::Left, TabLocation::Right })
+                {
+                    settings.WindowSettingsDefaults().TabLocation(location);
+                    const auto properties = winrt::make_self<winrt::TerminalApp::implementation::WindowProperties>();
+                    properties->WindowName(name);
+                    winrt::TerminalApp::TerminalPage projectedPage{ *properties, *manager };
+                    const auto page = winrt::get_self<winrt::TerminalApp::implementation::TerminalPage>(projectedPage);
+                    VERIFY_IS_FALSE(page->FocusMode());
+                    page->SetSettings(settings, false);
+                    page->Create();
+
+                    // Do not attach the page to a window or run the delayed Initialized event.
+                    VERIFY_IS_TRUE(page->_startupState == winrt::TerminalApp::implementation::StartupState::NotInitialized);
+                    // Keep TabView available for the initial selection, which attaches terminal content.
+                    // TerminalWindow applies the launch focus mode after page initialization.
+                    VERIFY_ARE_EQUAL(Visibility::Visible, page->_tabRow.Visibility());
+                    page->SetFocusMode(quake);
+                    VERIFY_ARE_EQUAL(quake, page->FocusMode());
+                    VERIFY_ARE_EQUAL(Visibility::Visible, page->_tabRow.Visibility());
+                    VERIFY_IS_TRUE(page->_tabLocation == (quake ? TabLocation::Left : location));
+                    page->ToggleFocusMode();
+                    VERIFY_ARE_EQUAL(!quake, page->FocusMode());
+                    VERIFY_ARE_EQUAL(quake ? Visibility::Visible : Visibility::Collapsed, page->_tabRow.Visibility());
+                    page->ToggleFocusMode();
+                    VERIFY_ARE_EQUAL(quake, page->FocusMode());
+                    VERIFY_ARE_EQUAL(Visibility::Visible, page->_tabRow.Visibility());
+                    // Renaming an existing focused window must refresh the sidebar
+                    // even though SetFocusMode(true) does not change focus mode.
+                    page->SetFocusMode(true);
+                    properties->WindowName(quake ? L"standalone" : L"_quake");
+                    page->SetFocusMode(true);
+                    VERIFY_IS_TRUE(page->_tabLocation == (quake ? location : TabLocation::Left));
+                    VERIFY_ARE_EQUAL(quake ? Visibility::Collapsed : Visibility::Visible, page->_tabRow.Visibility());
+                }
+            }
+        }));
+    }
+
     // Method Description:
     // - This is a helper to set up a TerminalPage for a unittest. This method
     //   does a couple things:
@@ -266,7 +314,16 @@ namespace TerminalAppLocalTests
         result = RunOnUIThread([&page]() {
             VERIFY_IS_NOT_NULL(page);
             VERIFY_IS_NOT_NULL(page->_settings);
-            page->Create();
+            try
+            {
+                page->Create();
+            }
+            catch (const winrt::hresult_error& error)
+            {
+                Log::Error(error.message().c_str());
+                VERIFY_SUCCEEDED(error.code());
+                throw;
+            }
             Log::Comment(L"Create()'d the page successfully");
 
             // Build a NewTab action, to make sure we start with one. The real
@@ -350,6 +407,118 @@ namespace TerminalAppLocalTests
             VERIFY_ARE_EQUAL(1u, page->_tabs.Size());
         });
         VERIFY_SUCCEEDED(result);
+    }
+
+    void TabTests::TabLocationLayouts()
+    {
+        CascadiaSettings settings{ LR"({
+            "showTabsInTitlebar": false,
+            "tabLocation": "left",
+            "defaultProfile": "{6239a42c-1111-49a3-80bd-e8fdd045185c}",
+            "profiles": [{
+                "name": "tab location test",
+                "guid": "{6239a42c-1111-49a3-80bd-e8fdd045185c}",
+                "closeOnExit": "never"
+            }]
+        })",
+                                   {} };
+        for (const auto tabsInTitlebar : { false, true })
+        {
+            settings.WindowSettingsDefaults().ShowTabsInTitlebar(tabsInTitlebar);
+            settings.WindowSettingsDefaults().TabLocation(TabLocation::Left);
+            winrt::com_ptr<winrt::TerminalApp::implementation::TerminalPage> page;
+            _initializeTerminalPage(page, settings);
+            ContentPresenter titlebar{ nullptr };
+            VERIFY_SUCCEEDED(RunOnUIThread([&]() {
+                titlebar = ContentPresenter{};
+                page->Root().Children().Append(titlebar);
+                page->SetTitleBarContent([titlebar](auto&&, const UIElement& content) {
+                    titlebar.Content(content);
+                });
+            }));
+            VERIFY_SUCCEEDED(RunOnUIThread([&]() {
+                page->_DuplicateFocusedTab();
+            }));
+
+            for (const auto location : { TabLocation::Left, TabLocation::Right, TabLocation::Top, TabLocation::Left, TabLocation::Top })
+            {
+                ::details::Event layoutReady;
+                winrt::event_token layoutToken;
+                VERIFY_SUCCEEDED(RunOnUIThread([&]() {
+                    layoutToken = page->_tabView.LayoutUpdated([&](auto&&, auto&&) {
+                        const auto first = page->_tabView.ContainerFromIndex(0).try_as<FrameworkElement>();
+                        const auto second = page->_tabView.ContainerFromIndex(1).try_as<FrameworkElement>();
+                        if (first && second && first.Parent() && second.Parent() && first.ActualWidth() > 0 && second.ActualWidth() > 0)
+                        {
+                            layoutReady.Set();
+                        }
+                    });
+                    settings.WindowSettingsDefaults().TabLocation(location);
+                    page->_UpdateTabLocation();
+                    page->UpdateLayout();
+                }));
+                const auto layoutResult = Thread_Wait_For(layoutReady.m_handle, 5000);
+                VERIFY_SUCCEEDED(RunOnUIThread([&]() {
+                    page->_tabView.LayoutUpdated(layoutToken);
+                }));
+                VERIFY_SUCCEEDED(layoutResult);
+                VERIFY_SUCCEEDED(RunOnUIThread([&]() {
+                    page->UpdateLayout();
+                    VERIFY_ARE_EQUAL(2u, page->_tabs.Size());
+                    VERIFY_ARE_EQUAL(2u, page->_tabView.TabItems().Size());
+                    VERIFY_ARE_EQUAL(page->_tabs.GetAt(1).TabViewItem(), page->_tabView.SelectedItem());
+                    const auto vertical = location != TabLocation::Top;
+                    for (const auto& tab : page->_tabs)
+                    {
+                        std::vector<DependencyObject> pending{ tab.TabViewItem() };
+                        bool foundContainer = false;
+                        while (!pending.empty())
+                        {
+                            const auto node = pending.back();
+                            pending.pop_back();
+                            if (const auto grid = node.try_as<Grid>(); grid && grid.Name() == L"TabContainer")
+                            {
+                                const auto radius = grid.CornerRadius();
+                                VERIFY_IS_TRUE(vertical ? radius.TopLeft == 0 && radius.TopRight == 0 : radius.TopLeft > 0 && radius.TopRight > 0);
+                                foundContainer = true;
+                                break;
+                            }
+                            for (auto i = 0; i < Media::VisualTreeHelper::GetChildrenCount(node); ++i)
+                            {
+                                pending.push_back(Media::VisualTreeHelper::GetChild(node, i));
+                            }
+                        }
+                        VERIFY_IS_TRUE(foundContainer);
+                    }
+                    if (!vertical && tabsInTitlebar)
+                    {
+                        VERIFY_ARE_EQUAL(page->_tabRow.as<winrt::Windows::Foundation::IInspectable>(), titlebar.Content());
+                    }
+                    else
+                    {
+                        VERIFY_ARE_EQUAL(vertical ? page->TabLayout().as<IInspectable>() : page->Root().as<IInspectable>(), page->_tabRow.Parent().as<IInspectable>());
+                    }
+                    VERIFY_ARE_EQUAL(location == TabLocation::Right ? 2 : 0, Grid::GetColumn(page->_tabRow));
+                    VERIFY_IS_TRUE(page->_tabContent.ActualWidth() > 0.0);
+                    const auto first = page->_tabs.GetAt(0).TabViewItem().TransformToVisual(page->_tabView).TransformPoint({});
+                    const auto second = page->_tabs.GetAt(1).TabViewItem().TransformToVisual(page->_tabView).TransformPoint({});
+                    Log::Comment(NoThrowString().Format(L"Tab origins: (%g, %g), (%g, %g); tab view size: %g x %g", first.X, first.Y, second.X, second.Y, page->_tabView.ActualWidth(), page->_tabView.ActualHeight()));
+                    if (vertical)
+                    {
+                        VERIFY_IS_TRUE(second.Y > first.Y);
+                    }
+                    else
+                    {
+                        VERIFY_IS_TRUE(second.X > first.X);
+                    }
+
+                    page->SetFocusMode(true);
+                    VERIFY_ARE_EQUAL(Visibility::Collapsed, page->_tabRow.Visibility());
+                    page->SetFocusMode(false);
+                    VERIFY_ARE_EQUAL(Visibility::Visible, page->_tabRow.Visibility());
+                }));
+            }
+        }
     }
 
     void TabTests::TryDuplicateBadTab()

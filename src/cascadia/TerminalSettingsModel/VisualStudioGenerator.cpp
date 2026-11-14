@@ -38,8 +38,16 @@ void VisualStudioGenerator::GenerateProfiles(std::vector<winrt::com_ptr<implemen
     auto hidden = false;
     for (const auto& instance : instances)
     {
-        devCmdGenerator.GenerateProfiles(instance, hidden, profiles);
-        devShellGenerator.GenerateProfiles(instance, hidden, profiles);
+        // Prefer the original VS 18 instance over the duplicate installation.
+        // Keep the normal latest-instance behavior for other Visual Studio versions.
+        const auto suffix = instance.GetProfileNameSuffix();
+        if (suffix == L"18 (2)")
+        {
+            continue;
+        }
+        const auto instanceHidden = suffix == L"18" ? false : hidden;
+        devCmdGenerator.GenerateProfiles(instance, instanceHidden, profiles);
+        devShellGenerator.GenerateProfiles(instance, instanceHidden, profiles);
         hidden = true;
     }
 }

@@ -12,7 +12,11 @@
       <Link>Images\%(RecursiveDir)%(FileName)%(Extension)</Link>
     </Content>
     <!-- Fonts -->
-    <Content Include="$(OpenConsoleDir)res\fonts\*.ttf" Condition="'$(WindowsTerminalOfficialBuild)'=='true'">
+    <Content Include="$(OpenConsoleDir)res\fonts\Cascadia*.ttf" Condition="'$(WindowsTerminalOfficialBuild)'=='true'">
+      <DeploymentContent>true</DeploymentContent>
+      <Link>%(FileName)%(Extension)</Link>
+    </Content>
+    <Content Include="$(OpenConsoleDir)res\fonts\MesloLGS NF*.ttf">
       <DeploymentContent>true</DeploymentContent>
       <Link>%(FileName)%(Extension)</Link>
     </Content>

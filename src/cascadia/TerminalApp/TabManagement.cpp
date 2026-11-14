@@ -170,12 +170,39 @@ namespace winrt::TerminalApp::implementation
         });
 
         auto tabViewItem = newTabImpl->TabViewItem();
+        if (_tabLocation != TabLocation::Top)
+        {
+            tabViewItem.MinWidth(240);
+            tabViewItem.MaxWidth(240);
+        }
         _tabView.TabItems().InsertAt(insertPosition, tabViewItem);
 
         // Set this tab's icon to the icon from the content
         _UpdateTabIcon(*newTabImpl);
 
         tabViewItem.PointerPressed({ this, &TerminalPage::_OnTabPointerPressed });
+        tabViewItem.Loaded([weakThis{ get_weak() }](const IInspectable& sender, auto&&) {
+            if (const auto page = weakThis.get())
+            {
+                winrt::get_self<implementation::TabRowControl>(page->_tabRow)->UpdateTabCorners(sender.as<MUX::Controls::TabViewItem>());
+            }
+        });
+        // WinUI's horizontal TabView cancels vertical keyboard focus moves.
+        // Handle them on the item before they reach the horizontal-only handler.
+        tabViewItem.GettingFocus([weakThis{ get_weak() }](auto&&, const WUX::Input::GettingFocusEventArgs& args) {
+            if (const auto page = weakThis.get())
+            {
+                const auto direction = args.Direction();
+                if (page->_tabLocation != TabLocation::Top &&
+                    args.InputDevice() == WUX::Input::FocusInputDeviceKind::Keyboard &&
+                    (direction == WUX::Input::FocusNavigationDirection::Up || direction == WUX::Input::FocusNavigationDirection::Down) &&
+                    args.OldFocusedElement().try_as<MUX::Controls::TabViewItem>() &&
+                    args.NewFocusedElement().try_as<MUX::Controls::TabViewItem>())
+                {
+                    args.Handled(true);
+                }
+            }
+        });
 
         // When the tab requests close, try to close it (prompt for approval, if required)
         newTabImpl->CloseRequested([weakTab, weakThis{ get_weak() }](auto&& /*s*/, auto&& /*e*/) {
@@ -246,11 +273,73 @@ namespace winrt::TerminalApp::implementation
         }
     }
 
-    // Method Description:
-    // - Handle changes to the tab width set by the user
+    // Reparent the existing tab control, retaining its items and selection.
+    void TerminalPage::_UpdateTabLocation()
+    {
+        const auto location = _WindowProperties.IsQuakeWindow() ? TabLocation::Left : _currentWindowSettings().TabLocation();
+        if (_tabLocation == location)
+        {
+            return;
+        }
+
+        if (_tabLocation == TabLocation::Top && _tabsInTitlebar)
+        {
+            SetTitleBarContent.raise(*this, nullptr);
+        }
+        // Parent() can still be null before the first layout, even though
+        // the XAML grid already owns the control in its Children collection.
+        for (const auto& panel : { Root(), TabLayout() })
+        {
+            uint32_t index;
+            if (panel.Children().IndexOf(_tabRow, index))
+            {
+                panel.Children().RemoveAt(index);
+            }
+        }
+
+        _tabLocation = location;
+        const auto vertical = location != TabLocation::Top;
+        {
+            // Replacing the tab template temporarily clears its selection.
+            // Keep the active terminal attached while the items are transferred.
+            const auto rearranging = std::exchange(_rearranging, true);
+            const auto restore = wil::scope_exit([&]() { _rearranging = rearranging; });
+            winrt::get_self<implementation::TabRowControl>(_tabRow)->SetVertical(vertical);
+        }
+        _tabRow.Width(vertical ? 240 : NAN);
+        _tabRow.Height(NAN);
+        WUX::Controls::Grid::SetRow(_tabRow, 0);
+        WUX::Controls::Grid::SetColumn(_tabRow, location == TabLocation::Right ? 2 : 0);
+        _UpdateTabWidthMode();
+
+        if (vertical)
+        {
+            TabLayout().Children().Append(_tabRow);
+        }
+        else if (_tabsInTitlebar)
+        {
+            _tabRow.Background(WUX::Media::SolidColorBrush{ Windows::UI::Colors::Transparent() });
+            SetTitleBarContent.raise(*this, _tabRow);
+        }
+        else
+        {
+            Root().Children().Append(_tabRow);
+        }
+        _UpdateTabView();
+    }
+
+    // Handle changes to the tab width set by the user.
     void TerminalPage::_UpdateTabWidthMode()
     {
-        _tabView.TabWidthMode(_currentWindowSettings().TabWidthMode());
+        const auto vertical = _tabLocation != TabLocation::Top;
+        _tabView.TabWidthMode(vertical ? MUX::Controls::TabViewWidthMode::SizeToContent : _currentWindowSettings().TabWidthMode());
+        for (const auto& item : _tabView.TabItems())
+        {
+            const auto tab = item.as<MUX::Controls::TabViewItem>();
+            tab.MinWidth(vertical ? 240 : 0);
+            tab.MaxWidth(vertical ? 240 : INFINITY);
+            winrt::get_self<implementation::TabRowControl>(_tabRow)->UpdateTabCorners(tab);
+        }
     }
 
     // Method Description:
@@ -258,12 +347,14 @@ namespace winrt::TerminalApp::implementation
     void TerminalPage::_UpdateTabView()
     {
         // The tab row should only be visible if:
-        // - we're not in focus mode
+        // - we're not in focus mode, unless this is the quake sidebar
         // - we're not in full screen, or the user has enabled fullscreen tabs
         // - there is more than one tab, or the user has chosen to always show tabs
-        const auto isVisible = !_isInFocusMode &&
+        const auto isQuakeWindow = _WindowProperties.IsQuakeWindow();
+        const auto isVisible = (!_isInFocusMode || isQuakeWindow) &&
                                (!_isFullscreen || _showTabsFullscreen) &&
-                               (_currentWindowSettings().ShowTabsInTitlebar() ||
+                               (isQuakeWindow ||
+                                _currentWindowSettings().ShowTabsInTitlebar() ||
                                 (_tabs.Size() > 1) ||
                                 _currentWindowSettings().AlwaysShowTabs());
 
@@ -275,8 +366,7 @@ namespace winrt::TerminalApp::implementation
         if (_tabRow)
         {
             // collapse/show the row that the tabs are in.
-            // NaN is the special value XAML uses for "Auto" sizing.
-            _tabRow.Height(isVisible ? NAN : 0);
+            _tabRow.Visibility(isVisible ? Visibility::Visible : Visibility::Collapsed);
         }
     }
 

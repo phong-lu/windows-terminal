@@ -1279,6 +1279,9 @@ safe_void_coroutine AppHost::_WindowInitializedHandler(const winrt::Windows::Fou
         co_return;
     }
 
+    // The page can already be in focus mode before we subscribe to FocusModeChanged.
+    // Apply its initial state before showing the native window as well.
+    _window->FocusModeChanged(_windowLogic.FocusMode());
     ShowWindow(_window->GetHandle(), nCmdShow);
 
     // If we didn't start the window hidden (in one way or another), then try to

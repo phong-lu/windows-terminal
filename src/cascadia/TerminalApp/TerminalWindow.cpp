@@ -580,6 +580,9 @@ namespace winrt::TerminalApp::implementation
             }
         }
 
+        // Quake windows start in focus mode, including when restoring a default-mode layout.
+        focusMode = focusMode || _WindowProperties->IsQuakeWindow();
+
         if ((_appArgs && _appArgs->ParsedArgs().GetSize().has_value()) || (proposedSize.Width == 0 && proposedSize.Height == 0))
         {
             // Use the default profile to determine how big of a window we need.
@@ -651,6 +654,11 @@ namespace winrt::TerminalApp::implementation
     // - LaunchMode enum that indicates the launch mode
     LaunchMode TerminalWindow::GetLaunchMode()
     {
+        if (_WindowProperties->IsQuakeWindow())
+        {
+            return LaunchMode::FocusMode;
+        }
+
         if (_contentBounds)
         {
             return LaunchMode::DefaultMode;
