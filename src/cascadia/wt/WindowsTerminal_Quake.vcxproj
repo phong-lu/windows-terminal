@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{ce807484-073a-49be-a9bb-28f795de39d1}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>WindowsTerminal_Quake</RootNamespace>
+    <ProjectName>WindowsTerminal_Quake</ProjectName>
+    <TargetName>WindowsTerminal_Quake</TargetName>
+    <ConfigurationType>Application</ConfigurationType>
+    <VersionInfoFileDescription>Windows Terminal Quake Launcher</VersionInfoFileDescription>
+  </PropertyGroup>
+
+  <Import Project="..\..\..\common.openconsole.props" Condition="'$(OpenConsoleDir)'==''" />
+  <Import Project="$(OpenConsoleDir)src\common.build.pre.props" />
+  <Import Project="$(OpenConsoleDir)src\common.nugetversions.props" />
+
+  <!-- Source Files -->
+  <ItemGroup>
+    <ClCompile Include="shim.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PreprocessorDefinitions>QUAKE_LAUNCHER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ResourceCompile Include="wt.rc" />
+  </ItemGroup>
+
+  <Import Project="$(OpenConsoleDir)src\common.build.post.props" />
+  <Import Project="$(OpenConsoleDir)src\common.nugetversions.targets" />
+
+  <ItemDefinitionGroup>
+    <Link>
+      <!-- Remove all non-onecore dependencies -->
+      <AdditionalDependencies>onecore.lib</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+</Project>

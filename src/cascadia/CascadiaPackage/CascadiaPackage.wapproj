@@ -80,6 +80,9 @@
     <ProjectReference Include="$(OpenConsoleDir)src\cascadia\ShellExtension\WindowsTerminalShellExt.vcxproj">
       <Project>{f2ed628a-db22-446f-a081-4cc845b51a2b}</Project>
     </ProjectReference>
+    <ProjectReference Include="$(OpenConsoleDir)src\cascadia\wt\WindowsTerminal_Quake.vcxproj">
+      <Project>{ce807484-073a-49be-a9bb-28f795de39d1}</Project>
+    </ProjectReference>
     <ProjectReference Include="$(OpenConsoleDir)src\cascadia\wt\wt.vcxproj">
       <Project>{506fd703-baa7-4f6e-9361-64f550ec8fca}</Project>
     </ProjectReference>

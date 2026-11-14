@@ -77,6 +77,7 @@ try {
     Expand-Archive -LiteralPath $zip[0].FullName -DestinationPath $source
     $app = Join-Path $source "terminal-$version"
     if (!(Test-Path (Join-Path $app 'WindowsTerminal.exe'))) { throw 'Missing WindowsTerminal.exe.' }
+    if (!(Test-Path (Join-Path $app 'WindowsTerminal_Quake.exe'))) { throw 'Missing WindowsTerminal_Quake.exe.' }
     & $InnoSetupCompiler "/DAppVersion=$version" "/DAppArch=$Architecture" `
         "/DSourceDir=$app" "/DOutputDir=$OutputDirectory" build/scripts/TerminalInstaller.iss
     if ($LASTEXITCODE) { throw 'Installer compilation failed.' }

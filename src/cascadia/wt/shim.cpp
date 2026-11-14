@@ -20,7 +20,12 @@ int __stdcall wWinMain(HINSTANCE, HINSTANCE, LPWSTR pCmdLine, int)
 
     // Append the rest of the commandline to the saved name
     std::wstring cmdline;
-    if (FAILED(wil::str_printf_nothrow(cmdline, L"%s %s", ourFilename.c_str(), pCmdLine)))
+#ifdef QUAKE_LAUNCHER
+    constexpr auto commandFormat = L"%s -w _quake %s";
+#else
+    constexpr auto commandFormat = L"%s %s";
+#endif
+    if (FAILED(wil::str_printf_nothrow(cmdline, commandFormat, ourFilename.c_str(), pCmdLine)))
     {
         return 1;
     }
