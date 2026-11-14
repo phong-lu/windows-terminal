@@ -750,6 +750,13 @@
       <Build Solution="Fuzzing|x64" Project="false" />
       <Build Solution="Fuzzing|x86" Project="false" />
     </Project>
+    <Project Path="src/cascadia/wt/WindowsTerminal_Quake.vcxproj" Id="ce807484-073a-49be-a9bb-28f795de39d1">
+      <Platform Solution="*|Any CPU" Project="Win32" />
+      <Build Solution="*|Any CPU" Project="false" />
+      <Build Solution="Fuzzing|ARM64" Project="false" />
+      <Build Solution="Fuzzing|x64" Project="false" />
+      <Build Solution="Fuzzing|x86" Project="false" />
+    </Project>
     <Project Path="src/cascadia/wt/wt.vcxproj" Id="506fd703-baa7-4f6e-9361-64f550ec8fca">
       <Platform Solution="*|Any CPU" Project="Win32" />
       <Build Solution="*|Any CPU" Project="false" />
