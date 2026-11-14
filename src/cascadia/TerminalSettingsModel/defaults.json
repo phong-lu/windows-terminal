@@ -716,6 +716,7 @@
         { "keys": "ctrl+shift+f", "id": "Terminal.FindText" },
         { "keys": "ctrl+shift+p", "id": "Terminal.ToggleCommandPalette" },
         { "keys": "win+sc(41)", "id": "Terminal.QuakeMode" },
+        { "keys": "ctrl+\\", "id": "Terminal.QuakeMode" },
         { "keys": "alt+space", "id": "Terminal.OpenSystemMenu" },
         { "keys": "ctrl+shift+period", "id": "Terminal.Suggestions" },
 
