@@ -72,7 +72,7 @@ try {
         -TerminalAppX $package.FullName -XamlAppX $xaml[0].FullName -Destination $stage -PortableMode -MakeAppxPath $makeAppx
     $zip = @(Get-ChildItem $stage -Filter '*.zip')
     if ($zip.Count -ne 1) { throw 'Expected one unpackaged distribution ZIP.' }
-    Copy-Item -LiteralPath $zip[0].FullName -Destination (Join-Path $OutputDirectory "WindowsTerminal_${version}_${Architecture}-portable.zip")
+    Copy-Item -LiteralPath $zip[0].FullName -Destination (Join-Path $OutputDirectory "WindowsTerminal_${displayVersion}_${Architecture}-portable.zip")
     $source = Join-Path $stage 'source'
     Expand-Archive -LiteralPath $zip[0].FullName -DestinationPath $source
     $app = Join-Path $source "terminal-$version"
