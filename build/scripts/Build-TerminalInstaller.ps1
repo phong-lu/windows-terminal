@@ -65,6 +65,7 @@ try {
     if ($xaml.Count -ne 1) { throw 'Expected one matching XAML dependency.' }
     $manifest = [xml](Get-Content src/cascadia/CascadiaPackage/Package.appxmanifest -Raw)
     $version = $manifest.Package.Identity.Version
+    $displayVersion = ([version]$version).ToString(3)
     $stage = Join-Path $OutputDirectory ([guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $stage -Force | Out-Null
     & ./build/scripts/New-UnpackagedTerminalDistribution.ps1 `
@@ -79,7 +80,7 @@ try {
     & $InnoSetupCompiler "/DAppVersion=$version" "/DAppArch=$Architecture" `
         "/DSourceDir=$app" "/DOutputDir=$OutputDirectory" build/scripts/TerminalInstaller.iss
     if ($LASTEXITCODE) { throw 'Installer compilation failed.' }
-    $installer = Join-Path $OutputDirectory "WindowsTerminal_${version}_${Architecture}-setup.exe"
+    $installer = Join-Path $OutputDirectory "WindowsTerminal_${displayVersion}_${Architecture}-setup.exe"
     if (!(Test-Path -LiteralPath $installer)) { throw 'Installer was not produced.' }
     Get-Item -LiteralPath $installer
     Get-FileHash -LiteralPath $installer -Algorithm SHA256
