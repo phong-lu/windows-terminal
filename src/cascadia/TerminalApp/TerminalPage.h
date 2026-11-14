@@ -277,6 +277,9 @@ namespace winrt::TerminalApp::implementation
         // (which is a root when the tabs are in the titlebar.)
         Microsoft::UI::Xaml::Controls::TabView _tabView{ nullptr };
         TerminalApp::TabRowControl _tabRow{ nullptr };
+        std::optional<winrt::Microsoft::Terminal::Settings::Model::TabLocation> _tabLocation;
+        bool _tabsInTitlebar{ false };
+        void _UpdateTabLocation();
         Windows::UI::Xaml::Controls::Grid _tabContent{ nullptr };
         Microsoft::UI::Xaml::Controls::SplitButton _newTabButton{ nullptr };
         Windows::UI::Xaml::Controls::MenuFlyout _workspaceFlyout{ nullptr };

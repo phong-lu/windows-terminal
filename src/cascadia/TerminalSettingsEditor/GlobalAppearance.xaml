@@ -129,6 +129,18 @@
             </local:SettingsExpander.Items>
         </local:SettingsExpander>
 
+        <local:SettingsCard x:Name="TabLocation"
+                            x:Uid="Globals_TabLocation">
+            <local:SettingsCard.HeaderIcon>
+                <FontIcon Glyph="&#xE8A0;" />
+            </local:SettingsCard.HeaderIcon>
+            <ComboBox AutomationProperties.AccessibilityView="Content"
+                      ItemTemplate="{StaticResource EnumComboBoxTemplate}"
+                      ItemsSource="{x:Bind ViewModel.TabLocationList, Mode=OneWay}"
+                      SelectedItem="{x:Bind ViewModel.CurrentTabLocation, Mode=TwoWay}"
+                      Style="{StaticResource ComboBoxSettingStyle}" />
+        </local:SettingsCard>
+
         <!--  Position of new tab  -->
         <local:SettingsCard x:Name="NewTabPosition"
                             x:Uid="Globals_NewTabPosition">

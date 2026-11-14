@@ -1,4 +1,4 @@
-<!--
+﻿<!--
     Copyright (c) Microsoft Corporation. All rights reserved. Licensed under
     the MIT License. See LICENSE in the project root for license information.
 -->
@@ -10,8 +10,81 @@
                   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                   xmlns:mtu="using:Microsoft.Terminal.UI"
                   xmlns:mux="using:Microsoft.UI.Xaml.Controls"
+                  xmlns:primitives="using:Microsoft.UI.Xaml.Controls.Primitives"
                   Background="{ThemeResource TabViewBackground}"
                   mc:Ignorable="d">
+
+    <ContentPresenter.Resources>
+        <!--
+            Keep the TabView and its items so selection, menus, renaming and
+            accessibility continue to use the same controls in either layout.
+            These template part names match WinUI 2.8's TabView contract.
+        -->
+        <ControlTemplate x:Key="VerticalTabViewTemplate"
+                         TargetType="mux:TabView">
+            <Grid>
+                <Grid x:Name="TabContainerGrid"
+                      Background="{TemplateBinding Background}"
+                      XYFocusKeyboardNavigation="Enabled">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition x:Name="TabColumn"
+                                          Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border x:Name="LeftBottomBorderLine"
+                            Visibility="Collapsed" />
+                    <Border x:Name="RightBottomBorderLine"
+                            Visibility="Collapsed" />
+                    <ContentPresenter x:Name="LeftContentPresenter"
+                                      Content="{TemplateBinding TabStripHeader}"
+                                      ContentTemplate="{TemplateBinding TabStripHeaderTemplate}" />
+                    <primitives:TabViewListView x:Name="TabListView"
+                                                Grid.Row="1"
+                                                MinWidth="240"
+                                                MaxWidth="240"
+                                                VerticalAlignment="Stretch"
+                                                AllowDrop="{TemplateBinding AllowDropTabs}"
+                                                CanDragItems="{TemplateBinding CanDragTabs}"
+                                                CanReorderItems="{TemplateBinding CanReorderTabs}"
+                                                ItemTemplate="{TemplateBinding TabItemTemplate}"
+                                                ItemTemplateSelector="{TemplateBinding TabItemTemplateSelector}"
+                                                ItemsSource="{TemplateBinding TabItemsSource}">
+                        <primitives:TabViewListView.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <ItemsStackPanel Orientation="Vertical" />
+                            </ItemsPanelTemplate>
+                        </primitives:TabViewListView.ItemsPanel>
+                        <primitives:TabViewListView.Template>
+                            <ControlTemplate TargetType="primitives:TabViewListView">
+                                <ScrollViewer x:Name="ScrollViewer"
+                                              BringIntoViewOnFocusChange="True"
+                                              HorizontalScrollBarVisibility="Disabled"
+                                              HorizontalScrollMode="Disabled"
+                                              VerticalScrollBarVisibility="Auto"
+                                              VerticalScrollMode="Enabled"
+                                              ZoomMode="Disabled">
+                                    <ItemsPresenter x:Name="TabsItemsPresenter" />
+                                </ScrollViewer>
+                            </ControlTemplate>
+                        </primitives:TabViewListView.Template>
+                    </primitives:TabViewListView>
+                    <Button x:Name="AddButton"
+                            Grid.Row="2"
+                            Visibility="Collapsed" />
+                    <ContentPresenter x:Name="RightContentPresenter"
+                                      Grid.Row="2"
+                                      Content="{TemplateBinding TabStripFooter}"
+                                      ContentTemplate="{TemplateBinding TabStripFooterTemplate}" />
+                </Grid>
+                <ContentPresenter x:Name="TabContentPresenter"
+                                  Visibility="Collapsed" />
+            </Grid>
+        </ControlTemplate>
+    </ContentPresenter.Resources>
 
     <!--
         GH#13143: Make sure that the Background is actually TabViewBackground

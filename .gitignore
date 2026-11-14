@@ -286,3 +286,12 @@ profiles.json
 
 # MSBuildCache
 /MSBuildCacheLogs/
+.build-temp/
+.codex-tmp/
+
+# Bundled release tools; keep local caches and tool setup logs out of Git.
+/.build-tools/*
+!/.build-tools/NuGet.exe
+!/.build-tools/Inno Setup 6/
+!/.build-tools/Inno Setup 6/**
+release-assets

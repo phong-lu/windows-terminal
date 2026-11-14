@@ -37,6 +37,7 @@ namespace SettingsModelUnitTests
         TEST_CLASS(SerializationTests);
 
         TEST_METHOD(GlobalSettings);
+        TEST_METHOD(TabLocationSetting);
         TEST_METHOD(Profile);
         TEST_METHOD(ColorScheme);
         TEST_METHOD(Actions);
@@ -148,6 +149,25 @@ namespace SettingsModelUnitTests
 
         RoundtripTest<implementation::GlobalAppSettings>(globalsString);
         RoundtripTest<implementation::GlobalAppSettings>(smallGlobalsString);
+    }
+
+    void SerializationTests::TabLocationSetting()
+    {
+        const auto defaults = implementation::GlobalAppSettings::FromJson(VerifyParseSucceeded(R"({})"));
+        VERIFY_ARE_EQUAL(TabLocation::Top, defaults->TabLocation());
+
+        for (const auto& [name, location] : {
+                 std::pair{ "top", TabLocation::Top },
+                 std::pair{ "left", TabLocation::Left },
+                 std::pair{ "right", TabLocation::Right } })
+        {
+            Json::Value json{ Json::objectValue };
+            json["tabLocation"] = name;
+            const auto settings = implementation::GlobalAppSettings::FromJson(json);
+            VERIFY_ARE_EQUAL(location, settings->TabLocation());
+            VERIFY_ARE_EQUAL(std::string{ name }, settings->ToJson()["tabLocation"].asString());
+            VERIFY_ARE_EQUAL(location, settings->Copy()->TabLocation());
+        }
     }
 
     void SerializationTests::Profile()

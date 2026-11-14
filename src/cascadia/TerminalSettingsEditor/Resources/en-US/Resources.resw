@@ -2919,4 +2919,19 @@ This action is applied immediately and cannot be undone.</value>
     <value>System integration and notifications</value>
     <comment>Title of a section that groups settings related to system integration and notifications.</comment>
   </data>
+  <data name="Globals_TabLocation.Header" xml:space="preserve">
+    <value>Tab location</value>
+  </data>
+  <data name="Globals_TabLocation.Description" xml:space="preserve">
+    <value>Show tabs across the top or vertically on the left or right side of the window.</value>
+  </data>
+  <data name="Globals_TabLocationTop.Content" xml:space="preserve">
+    <value>Top</value>
+  </data>
+  <data name="Globals_TabLocationLeft.Content" xml:space="preserve">
+    <value>Left</value>
+  </data>
+  <data name="Globals_TabLocationRight.Content" xml:space="preserve">
+    <value>Right</value>
+  </data>
 </root>

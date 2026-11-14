@@ -44,6 +44,13 @@ namespace Microsoft.Terminal.Settings.Model
         PersistedLayoutAndContent,
     };
 
+    enum TabLocation
+    {
+        Top,
+        Left,
+        Right,
+    };
+
     enum NewTabPosition
     {
         AfterLastTab,
@@ -100,6 +107,7 @@ namespace Microsoft.Terminal.Settings.Model
         INHERITABLE_SETTING(Boolean, AlwaysShowTabs);
         INHERITABLE_SETTING(Boolean, ShowTabsFullscreen);
         INHERITABLE_SETTING(NewTabPosition, NewTabPosition);
+        INHERITABLE_SETTING(TabLocation, TabLocation);
         INHERITABLE_SETTING(Boolean, ShowTitleInTitlebar);
         INHERITABLE_SETTING(Microsoft.UI.Xaml.Controls.TabViewWidthMode, TabWidthMode);
         INHERITABLE_SETTING(Boolean, UseAcrylicInTabRow);
