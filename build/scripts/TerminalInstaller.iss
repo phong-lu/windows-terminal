@@ -47,9 +47,9 @@ Source: "{#SourceDir}\*"; DestDir: "{app}"; Excludes: ".portable,settings\*"; Fl
 
 [Icons]
 Name: "{userprograms}\Windows Terminal ({#AppArch})"; Filename: "{app}\WindowsTerminal.exe"
-Name: "{userprograms}\Windows Terminal Quake ({#AppArch})"; Filename: "{app}\WindowsTerminal.exe"; Parameters: "-w _quake"
+Name: "{userprograms}\Windows Terminal Quake ({#AppArch})"; Filename: "{app}\WindowsTerminal_Quake.exe"
 Name: "{userdesktop}\Windows Terminal ({#AppArch})"; Filename: "{app}\WindowsTerminal.exe"; Tasks: desktopicons
-Name: "{userdesktop}\Windows Terminal Quake ({#AppArch})"; Filename: "{app}\WindowsTerminal.exe"; Parameters: "-w _quake"; Tasks: desktopicons
+Name: "{userdesktop}\Windows Terminal Quake ({#AppArch})"; Filename: "{app}\WindowsTerminal_Quake.exe"; Tasks: desktopicons
 
 [Run]
 Filename: "{app}\WindowsTerminal.exe"; Description: "Launch Windows Terminal"; Flags: nowait postinstall skipifsilent
