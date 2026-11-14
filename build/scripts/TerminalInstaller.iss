@@ -1,4 +1,5 @@
 ; Build with ISCC /DAppVersion=... /DAppArch=... /DSourceDir=... /DOutputDir=...
+#define DisplayVersion Copy(AppVersion, 1, RPos(".", AppVersion) - 1)
 #if AppArch == "arm64"
   #define AllowedArchitecture "arm64"
 #else
@@ -18,11 +19,12 @@ ArchitecturesAllowed={#AllowedArchitecture}
 ArchitecturesInstallIn64BitMode={#AllowedArchitecture}
 MinVersion=10.0.19041
 OutputDir={#OutputDir}
-OutputBaseFilename=WindowsTerminal_{#AppVersion}_{#AppArch}-setup
+OutputBaseFilename=WindowsTerminal_{#DisplayVersion}_{#AppArch}-setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 DisableWelcomePage=no
+UninstallDisplayName={#SetupSetting("AppName")} {#DisplayVersion}
 UninstallDisplayIcon={app}\WindowsTerminal.exe
 CloseApplications=yes
 RestartApplications=no
